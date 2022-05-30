@@ -1429,7 +1429,11 @@ void QuantizedDepthwiseConvAccumRow(int stride, int dilation_factor,
                                     int out_x_buffer_start,
                                     int out_x_buffer_end, int output_depth,
                                     int32* acc_buffer) {
+#ifdef _WIN32
+  ruy::profiler::ScopeLabel label(__func__);
+#else
   ruy::profiler::ScopeLabel label(__PRETTY_FUNCTION__);
+#endif
   // Consistency check parameters. This is important in particular to ensure
   // that we keep the number of template instantiations minimal, so we don't
   // increase binary size unnecessarily.

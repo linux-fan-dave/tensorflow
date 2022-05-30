@@ -79,7 +79,12 @@ if(TFLITE_KERNEL_TEST AND ${CMAKE_CROSSCOMPILING})
   endif()
 endif()
 
-set(CMAKE_CXX_STANDARD 14)  # Some components require C++14.
+if(WIN32)
+    set(CMAKE_CXX_STANDARD 20)  # Some components require C++20 on visual studio
+else()
+    set(CMAKE_CXX_STANDARD 14)  # Some components require C++14.
+endif()
+
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(_TFLITE_ENABLE_RUY "${TFLITE_ENABLE_RUY}")
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Android")
@@ -546,8 +551,27 @@ add_library(_pywrap_tensorflow_interpreter_wrapper SHARED EXCLUDE_FROM_ALL
   ${TFLITE_SOURCE_DIR}/python/interpreter_wrapper/python_utils.cc
 )
 
+if(WIN32)
+    #some of the dependent projects are not prepared to be linked on windows.
+    #They explicitely link libm which does not exist in windows. Therefore we link an empty lib
+    add_library(m STATIC ${TFLITE_SOURCE_DIR}/simulate_m_windows.cc)
+endif()
+
 # To remove "lib" prefix.
 set_target_properties(_pywrap_tensorflow_interpreter_wrapper PROPERTIES PREFIX "")
+
+if(WIN32)
+    # set a variable like Python3_ROOT_DIR to force a specific python version
+    #set(Python3_ROOT_DIR C:/Users/feurd/AppData/Local/Programs/Python/Python38)
+    find_package (Python3 COMPONENTS Interpreter Development NumPy REQUIRED)
+    target_link_libraries(_pywrap_tensorflow_interpreter_wrapper Python3::Python Python3::NumPy)
+
+    # set pybind11 dir to something similar
+    #set(pybind11_DIR C:/Users/feurd/AppData/Local/Programs/Python/Python38/Lib/site-packages/pybind11/share/cmake/pybind11)
+    find_package(pybind11 REQUIRED)
+    target_include_directories(_pywrap_tensorflow_interpreter_wrapper
+        PUBLIC ${pybind11_INCLUDE_DIR})
+endif()
 
 target_include_directories(_pywrap_tensorflow_interpreter_wrapper
   PUBLIC
