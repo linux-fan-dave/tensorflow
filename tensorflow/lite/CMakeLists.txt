@@ -566,9 +566,30 @@ if(WIN32)
     find_package (Python3 COMPONENTS Interpreter Development NumPy REQUIRED)
     target_link_libraries(_pywrap_tensorflow_interpreter_wrapper Python3::Python Python3::NumPy)
 
-    # set pybind11 dir to something similar
-    #set(pybind11_DIR C:/Users/feurd/AppData/Local/Programs/Python/Python38/Lib/site-packages/pybind11/share/cmake/pybind11)
-    find_package(pybind11 REQUIRED)
+    #Python3_NumPy_VERSION
+
+    find_package(pybind11)
+
+    if(NOT ${pybind11_FOUND})
+        message("pybind11 can not be found - trying to autodect the location of pybind")
+        set(pybind11_DIR "${Python3_SITELIB}/pybind11/share/cmake/pybind11")
+        find_package(pybind11)
+        if(NOT ${pybind11_FOUND})
+            #try to execute the configured python to find to user site
+            execute_process(COMMAND ${Python3_EXECUTABLE} -m site --user-site
+                RESULT_VARIABLE EXEC_RES
+                OUTPUT_VARIABLE PYTHON_USER_SITE)
+            if(EXEC_RES EQUAL 0)
+                set(pybind11_DIR "${PYTHON_USER_SITE}/pybind11/share/cmake/pybind11")
+                find_package(pybind11)
+            endif()
+        endif()
+    endif()
+    if(NOT ${pybind11_FOUND})
+        message(SEND_ERROR "pybind11 could not be found - please specify the location by setting the pybind11_DIR variable")
+        find_package(pybind11 REQUIRED)
+    endif()
+
     target_include_directories(_pywrap_tensorflow_interpreter_wrapper
         PUBLIC ${pybind11_INCLUDE_DIR})
 endif()
